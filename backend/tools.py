@@ -2,7 +2,7 @@ import re
 from typing import List, Dict, Any
 from langchain_core.tools import tool
 
-from config import SOUTH_ASIAN_COUNTRIES
+from .config import SOUTH_ASIAN_COUNTRIES
 
 
 @tool

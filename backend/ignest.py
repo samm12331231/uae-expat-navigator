@@ -6,7 +6,7 @@ from langchain_chroma import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import pymupdf4llm
 
-from config import AUTHORITY_MAP, CHROMA_PATH, EMBEDDING_MODEL, SOURCE_DIR
+from .config import AUTHORITY_MAP, CHROMA_PATH, EMBEDDING_MODEL, SOURCE_DIR
 
 load_dotenv()
 
