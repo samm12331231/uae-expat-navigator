@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UAE Expat Navigator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 40px 20px; }
+    h1 { color: #38bdf8; margin-bottom: 6px; font-size: 28px; }
+    .subtitle { color: #94a3b8; margin-bottom: 30px; font-size: 14px; }
+    #chat { width: 100%; max-width: 720px; background: #1e293b; border-radius: 12px; padding: 20px; min-height: 400px; max-height: 600px; overflow-y: auto; margin-bottom: 16px; border: 1px solid #334155; }
+    .msg { margin-bottom: 20px; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .user { color: #38bdf8; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .bot { color: #e2e8f0; line-height: 1.7; white-space: pre-wrap; }
+    .bot ol { margin-left: 20px; margin-top: 8px; }
+    .bot li { margin-bottom: 6px; }
+    .sources { font-size: 12px; color: #64748b; margin-top: 10px; padding-top: 10px; border-top: 1px solid #334155; }
+    .tool-call { font-size: 12px; color: #64748b; margin-bottom: 10px; padding: 8px; background: #1e293b; border-radius: 6px; border-left: 3px solid #38bdf8; }
+    .input-row { display: flex; gap: 10px; width: 100%; max-width: 720px; }
+    input { flex: 1; padding: 14px 18px; border-radius: 10px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 15px; outline: none; }
+    input:focus { border-color: #38bdf8; }
+    button { padding: 14px 28px; border-radius: 10px; border: none; background: #38bdf8; color: #0f172a; font-weight: 700; font-size: 15px; cursor: pointer; transition: opacity 0.2s; }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .loading { color: #94a3b8; font-style: italic; display: flex; align-items: center; gap: 8px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { color: #f87171; }
+  </style>
+</head>
+<body>
+  <h1>🇦🇪 UAE Expat Navigator</h1>
+  <div class="subtitle">Official government guidance for visas, licenses, permits & more</div>
+  <div id="chat"></div>
+  <div class="input-row">
+    <input id="q" placeholder="How do I convert my foreign driving license?" onkeydown="if(event.key==='Enter') send()">
+    <button id="btn" onclick="send()">Ask</button>
+  </div>
+
+  <script>
+    // Use relative API when hosted; fallback to localhost for dev
+    const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://localhost:8000/ask"
+      : "/ask";
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("q");
+    const btn = document.getElementById("btn");
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function append(role, html) {
+      const div = document.createElement("div");
+      div.className = "msg";
+      div.innerHTML = `<div class="${role}">${role === 'user' ? 'You' : 'Agent'}</div><div class="bot">${html}</div>`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    async function send() {
+      const q = input.value.trim();
+      if (!q) return;
+      input.value = "";
+      append("user", escapeHtml(q));
+      btn.disabled = true;
+      const loading = append("bot", '<div class="loading"><div class="spinner"></div>Searching official documents...</div>');
+
+      try {
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q })
+        });
+        const data = await res.json();
+        loading.remove();
+
+        // Show tool calls if present
+        if (data.tool_calls && Object.keys(data.tool_calls).length > 0) {
+          let toolHtml = '<div class="tool-call">';
+          if (data.tool_calls.eligibility) {
+            const e = data.tool_calls.eligibility;
+            toolHtml += `🔧 Checked eligibility for ${escapeHtml(e.country)} → ${e.eligible ? 'Eligible' : 'Not eligible'}<br>`;
+          }
+          if (data.tool_calls.fees) {
+            const f = data.tool_calls.fees;
+            toolHtml += `🔧 Calculated fees → AED ${escapeHtml(String(f.total))} total`;
+          }
+          toolHtml += '</div>';
+          const toolDiv = document.createElement("div");
+          toolDiv.innerHTML = toolHtml;
+          chat.appendChild(toolDiv);
+        }
+
+        let html = escapeHtml(data.answer).replace(/\n/g, "<br>");
+        if (data.sources?.length) {
+          const sourceNames = data.sources.map(s => typeof s === 'string' ? escapeHtml(s) : escapeHtml(s.source));
+          html += `<div class="sources">📄 Sources: ${sourceNames.join(" • ")}</div>`;
+        }
+        append("bot", html);
+      } catch (e) {
+        loading.remove();
+        append("bot", `<span class="error">Error: ${escapeHtml(e.message)}</span>`);
+      }
+      btn.disabled = false;
+      input.focus();
+    }
+  </script>
+</body>
+</html>
