@@ -6,58 +6,314 @@
   <title>UAE Expat Navigator</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 40px 20px; }
-    h1 { color: #38bdf8; margin-bottom: 6px; font-size: 28px; }
-    .subtitle { color: #94a3b8; margin-bottom: 30px; font-size: 14px; }
-    #chat { width: 100%; max-width: 720px; background: #1e293b; border-radius: 12px; padding: 20px; min-height: 400px; max-height: 600px; overflow-y: auto; margin-bottom: 16px; border: 1px solid #334155; }
-    .msg { margin-bottom: 20px; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    .user { color: #38bdf8; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .bot { color: #e2e8f0; line-height: 1.7; white-space: pre-wrap; }
-    .bot ol { margin-left: 20px; margin-top: 8px; }
-    .bot li { margin-bottom: 6px; }
-    .sources { font-size: 12px; color: #64748b; margin-top: 10px; padding-top: 10px; border-top: 1px solid #334155; }
-    .tool-call { font-size: 12px; color: #64748b; margin-bottom: 10px; padding: 8px; background: #1e293b; border-radius: 6px; border-left: 3px solid #38bdf8; }
-    .input-row { display: flex; gap: 10px; width: 100%; max-width: 720px; }
-    input { flex: 1; padding: 14px 18px; border-radius: 10px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 15px; outline: none; }
-    input:focus { border-color: #38bdf8; }
-    button { padding: 14px 28px; border-radius: 10px; border: none; background: #38bdf8; color: #0f172a; font-weight: 700; font-size: 15px; cursor: pointer; transition: opacity 0.2s; }
-    button:hover { opacity: 0.9; }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .loading { color: #94a3b8; font-style: italic; display: flex; align-items: center; gap: 8px; }
-    .spinner { width: 16px; height: 16px; border: 2px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .header { text-align: center; margin-bottom: 28px; }
+    .header h1 { color: #38bdf8; font-size: 28px; margin-bottom: 6px; }
+    .header p { color: #64748b; font-size: 14px; }
+
+
+    #chat {
+      width: 100%;
+      max-width: 740px;
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 20px;
+      min-height: 420px;
+      max-height: 620px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      border: 1px solid #334155;
+      scroll-behavior: smooth;
+    }
+
+    .msg { margin-bottom: 22px; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    .label-user {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #38bdf8;
+      margin-bottom: 5px;
+    }
+    .label-agent {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #94a3b8;
+      margin-bottom: 5px;
+    }
+
+    .bubble-user {
+      background: #1e3a5f;
+      border: 1px solid #1d4ed8;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #e2e8f0;
+      display: inline-block;
+      max-width: 90%;
+    }
+
+    .bubble-agent {
+      color: #e2e8f0;
+      line-height: 1.75;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .tool-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .tool-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #94a3b8;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    .tool-chip .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-blue   { background: #38bdf8; }
+    .dot-green  { background: #4ade80; }
+    .dot-red    { background: #f87171; }
+    .dot-amber  { background: #fbbf24; }
+
+    .sources {
+      font-size: 11px;
+      color: #475569;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .source-pill {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 10px;
+      color: #64748b;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .disclaimer {
+      font-size: 11px;
+      color: #475569;
+      margin-top: 8px;
+      padding: 6px 10px;
+      border-left: 2px solid #334155;
+      background: #0f172a;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #64748b;
+      font-size: 13px;
+      font-style: italic;
+    }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #1e293b;
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .error { color: #f87171; }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 740px;
+    }
+
+    input {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input::placeholder { color: #475569; }
+    input:focus { border-color: #38bdf8; }
+
+    button {
+      padding: 14px 28px;
+      border-radius: 10px;
+      border: none;
+      background: #38bdf8;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    button:hover  { opacity: 0.9; }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+    .error { color: #f87171; font-size: 13px; }
+
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
+      max-width: 740px;
+      margin-bottom: 14px;
+    }
+    .suggest-btn {
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 1px solid #334155;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      font-weight: 400;
+    }
+    .suggest-btn:hover {
+      border-color: #38bdf8;
+      color: #38bdf8;
+      background: transparent;
+      opacity: 1;
+      transform: none;
+    }
   </style>
 </head>
 <body>
-  <h1>🇦🇪 UAE Expat Navigator</h1>
-  <div class="subtitle">Official government guidance for visas, licenses, permits & more</div>
-  <div id="chat"></div>
+
+  <div class="header">
+    <h1>🇦🇪 UAE Expat Navigator</h1>
+    <p>Official government guidance for visas, licenses, permits &amp; more</p>
+
+  </div>
+
+  <div id="chat">
+    <div class="msg">
+      <div class="label-agent">Agent</div>
+      <div class="bubble-agent">Hello! I'm your UAE government services guide. Ask me anything about driving license conversion, residence permits, visa processes, or work permits — I'll answer only from official UAE government documents and always cite my sources.</div>
+    </div>
+  </div>
+
+  <div class="suggestions" id="suggestions">
+    <button class="suggest-btn" onclick="fillAndSend('Can I exchange my Indian driving license?')">🇮🇳 Indian license exchange</button>
+    <button class="suggest-btn" onclick="fillAndSend('How do I convert my UK driving license?')">🇬🇧 UK license conversion</button>
+    <button class="suggest-btn" onclick="fillAndSend('How do I get a residence permit for my family?')">👨‍👩‍👧 Family residence permit</button>
+    <button class="suggest-btn" onclick="fillAndSend('How do I change my visa status?')">📋 Visa status change</button>
+    <button class="suggest-btn" onclick="fillAndSend('How do I get a new work permit?')">💼 Work permit</button>
+  </div>
+
   <div class="input-row">
-    <input id="q" placeholder="How do I convert my foreign driving license?" onkeydown="if(event.key==='Enter') send()">
+    <input id="q" placeholder="How do I convert my foreign driving license?" onkeydown="if(event.key==='Enter' && !event.shiftKey) send()">
     <button id="btn" onclick="send()">Ask</button>
   </div>
 
   <script>
-    // Use relative API when hosted; fallback to localhost for dev
-    const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-      ? "http://localhost:8000/ask"
-      : "/ask";
-    const chat = document.getElementById("chat");
+    const API   = "http://localhost:8000/ask";
+    const chat  = document.getElementById("chat");
     const input = document.getElementById("q");
-    const btn = document.getElementById("btn");
+    const btn   = document.getElementById("btn");
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+    function fillAndSend(text) {
+      input.value = text;
+      send();
     }
 
-    function append(role, html) {
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function formatAnswer(text) {
+      let escaped = escapeHtml(text);
+      escaped = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      escaped = escaped.replace(/\n(\d+)\.\s/g, "\n<br><strong>$1.</strong> ");
+      escaped = escaped.replace(/\n[-•]\s/g, "\n<br>• ");
+      escaped = escaped.replace(/\n/g, "<br>");
+      return escaped;
+    }
+
+    function buildToolStrip(tool_calls) {
+  if (!tool_calls || Object.keys(tool_calls).length === 0) return "";
+  let chips = "";
+
+  if (tool_calls.eligibility) {
+    const e = tool_calls.eligibility;
+    const eligible = e.eligible;
+    const dotClass = eligible ? "dot-green" : "dot-red";
+    const label = eligible
+      ? `${e.country} → Eligible`
+      : `${e.country} → Not eligible`;
+    chips += `<span class="tool-chip"><span class="dot ${dotClass}"></span>${escapeHtml(label)}</span>`;
+  }
+
+  if (tool_calls.fees) {
+    const f = tool_calls.fees;
+    chips += `<span class="tool-chip"><span class="dot dot-blue"></span>Total: AED ${f.total.toLocaleString()}</span>`;
+  }
+
+  return chips ? `<div class="tool-strip">${chips}</div>` : "";
+}
+
+    function buildSources(sources) {
+      if (!sources || sources.length === 0) return "";
+      const pills = sources
+        .map(s => {
+          const name = typeof s === "string" ? s : (s.source || "Unknown");
+          return `<span class="source-pill">${escapeHtml(name)}</span>`;
+        })
+        .join("");
+      return `<div class="sources">📄 Sources: ${pills}</div>`;
+    }
+
+    function appendMsg(role, innerHtml) {
       const div = document.createElement("div");
       div.className = "msg";
-      div.innerHTML = `<div class="${role}">${role === 'user' ? 'You' : 'Agent'}</div><div class="bot">${html}</div>`;
+      const labelClass = role === "user" ? "label-user" : "label-agent";
+      const label = role === "user" ? "You" : "Agent";
+      div.innerHTML = `<div class="${labelClass}">${label}</div>${innerHtml}`;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
       return div;
@@ -67,49 +323,43 @@
       const q = input.value.trim();
       if (!q) return;
       input.value = "";
-      append("user", escapeHtml(q));
+
+      document.getElementById("suggestions").style.display = "none";
+
+      appendMsg("user", `<div class="bubble-user">${escapeHtml(q)}</div>`);
+
       btn.disabled = true;
-      const loading = append("bot", '<div class="loading"><div class="spinner"></div>Searching official documents...</div>');
+      const loadingDiv = appendMsg("bot",
+        `<div class="loading"><div class="spinner"></div>Searching official UAE government documents…</div>`
+      );
 
       try {
         const res = await fetch(API, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: q })
+          body: JSON.stringify({ question: q }),
         });
+
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
         const data = await res.json();
-        loading.remove();
+        loadingDiv.remove();
 
-        // Show tool calls if present
-        if (data.tool_calls && Object.keys(data.tool_calls).length > 0) {
-          let toolHtml = '<div class="tool-call">';
-          if (data.tool_calls.eligibility) {
-            const e = data.tool_calls.eligibility;
-            toolHtml += `🔧 Checked eligibility for ${escapeHtml(e.country)} → ${e.eligible ? 'Eligible' : 'Not eligible'}<br>`;
-          }
-          if (data.tool_calls.fees) {
-            const f = data.tool_calls.fees;
-            toolHtml += `🔧 Calculated fees → AED ${escapeHtml(String(f.total))} total`;
-          }
-          toolHtml += '</div>';
-          const toolDiv = document.createElement("div");
-          toolDiv.innerHTML = toolHtml;
-          chat.appendChild(toolDiv);
-        }
+        const toolStrip  = buildToolStrip(data.tool_calls);
+        const answerHtml = `<div class="bubble-agent">${formatAnswer(data.answer)}</div>`;
+        const sourcesHtml = buildSources(data.sources);
+        const disclaimerHtml = `<div class="disclaimer">⚠️ This is not official legal advice. Always verify requirements directly with the relevant UAE government authority before proceeding.</div>`;
 
-        let html = escapeHtml(data.answer).replace(/\n/g, "<br>");
-        if (data.sources?.length) {
-          const sourceNames = data.sources.map(s => typeof s === 'string' ? escapeHtml(s) : escapeHtml(s.source));
-          html += `<div class="sources">📄 Sources: ${sourceNames.join(" • ")}</div>`;
-        }
-        append("bot", html);
-      } catch (e) {
-        loading.remove();
-        append("bot", `<span class="error">Error: ${escapeHtml(e.message)}</span>`);
+        appendMsg("bot", toolStrip + answerHtml + sourcesHtml + disclaimerHtml);
+
+      } catch (err) {
+        loadingDiv.remove();
+        appendMsg("bot", `<div class="bubble-agent error">Error: ${escapeHtml(err.message)}. Make sure the backend server is running.</div>`);
       }
+
       btn.disabled = false;
       input.focus();
     }
   </script>
+
 </body>
 </html>

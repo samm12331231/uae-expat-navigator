@@ -2,20 +2,22 @@ import re
 from typing import List, Dict, Any
 from langchain_core.tools import tool
 
-from config import SOUTH_ASIAN_COUNTRIES
+from backend.config import SOUTH_ASIAN_COUNTRIES
 
 
 @tool
 def fee_calculator(fees: List[str]) -> Dict[str, Any]:
-    """
-    Calculate total fees from a list of fee strings.
-    Input : ["AED 200", "AED 1,180.50", "AED 400"]
-    Returns: {"total": 1780.5, "breakdown": [...], "currency": "AED"}
+    """Calculate the total of a list of AED fee strings, deduplicating by amount.
+    
+    Args:
+        fees: List of fee strings like ["AED 200", "AED 180", "AED 20"]
+    
+    Returns:
+        Dict with total, breakdown, and currency.
     """
     total = 0.0
     breakdown = []
-    seen = set()
-    # Handles AED 1,200.50, AED 200, etc.
+    seen_amounts = set()
     pattern = re.compile(r"AED[\s]*([\d,]+(?:\.\d+)?)", re.IGNORECASE)
 
     for fee_str in fees:
@@ -24,11 +26,15 @@ def fee_calculator(fees: List[str]) -> Dict[str, Any]:
             continue
         amount_str = match.group(1).replace(",", "")
         amount = float(amount_str)
-        key = fee_str.strip()
-        if key not in seen:
-            seen.add(key)
+
+        # Skip amounts under 10 — likely page numbers or references
+        if amount < 10:
+            continue
+
+        if amount not in seen_amounts:
+            seen_amounts.add(amount)
             total += amount
-            breakdown.append({"item": key, "amount": amount})
+            breakdown.append({"item": fee_str, "amount": amount})
 
     return {
         "total": round(total, 2),
@@ -39,8 +45,14 @@ def fee_calculator(fees: List[str]) -> Dict[str, Any]:
 
 @tool
 def eligibility_checker(country: str, process_type: str) -> Dict[str, Any]:
-    """
-    Check if a country is eligible for direct UAE driving-license exchange.
+    """Check if a country is eligible for direct UAE driving-license exchange.
+    
+    Args:
+        country: Country name like "India" or "United Kingdom"
+        process_type: The UAE process, e.g. "driving_license_exchange"
+    
+    Returns:
+        Dict with eligibility status, reason, and alternative path.
     """
     country_title = country.title()
 
