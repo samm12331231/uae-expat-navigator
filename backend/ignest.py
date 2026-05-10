@@ -6,7 +6,7 @@ from langchain_chroma import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import pymupdf4llm
 
-from .config import AUTHORITY_MAP, CHROMA_PATH, EMBEDDING_MODEL, SOURCE_DIR
+from backend.config import AUTHORITY_MAP, CHROMA_PATH, EMBEDDING_MODEL, SOURCE_DIR
 
 load_dotenv()
 
@@ -14,12 +14,10 @@ EMBEDDINGS = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
 
 def ingest_docs():
-    # Clear old DB to avoid duplicates on re-run
     if os.path.exists(CHROMA_PATH):
         shutil.rmtree(CHROMA_PATH)
         print("🗑️  Cleared old ChromaDB")
 
-    # Header-aware but with size limits
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=800,
         chunk_overlap=150,
@@ -54,7 +52,7 @@ def ingest_docs():
         embedding=EMBEDDINGS,
         persist_directory=CHROMA_PATH
     )
-    _ = vectorstore  # persist_directory handles saving automatically
+    _ = vectorstore
 
     print(f"\n✅ Done — {len(all_chunks)} total chunks in {CHROMA_PATH}")
 

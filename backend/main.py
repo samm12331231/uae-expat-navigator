@@ -1,7 +1,8 @@
-import os
 import asyncio
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 
@@ -10,7 +11,6 @@ from backend.agent import get_agent
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialise once at startup
     app.state.agent = get_agent()
     yield
 
@@ -39,7 +39,6 @@ class AskResponse(BaseModel):
 @app.post("/ask", response_model=AskResponse)
 async def ask(req: AskRequest):
     try:
-        # Run the synchronous agent in a thread pool so we don't block the event loop
         result = await asyncio.to_thread(app.state.agent, req.question)
         return {
             "answer": result["answer"],
@@ -55,8 +54,11 @@ async def health():
     return {"status": "ok"}
 
 
+# Serve frontend static files
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+
+
 if __name__ == "__main__":
     import uvicorn
-
     port = int(os.getenv("PORT", "8000"))
     uvicorn.run(app, host="0.0.0.0", port=port)
