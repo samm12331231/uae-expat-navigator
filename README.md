@@ -34,6 +34,7 @@ requirements.txt Python dependencies
    OPENAI_API_KEY=...
    GROQ_API_KEY=...
    ```
+4. Run the commands below from the repository root so `backend.*` modules resolve correctly.
 
 Optional environment variables:
 ```
@@ -45,14 +46,19 @@ PORT=8000
 ## Ingest Documents
 Place official PDFs in `data/pdfs/`, then run ingestion to build the vector store:
 ```bash
-python backend/ignest.py
+python -m backend.ignest
 ```
 This clears any existing Chroma DB at `CHROMA_PATH` and rebuilds it.
 
 ## Run the API
 ```bash
-python backend/main.py
+python -m backend.main
 ```
+Or with auto-reload:
+```bash
+uvicorn backend.main:app --reload
+```
+The backend serves the frontend at `http://localhost:8000/` by default.
 API endpoints:
 - `POST /ask` — body: `{ "question": "..." }`
 - `GET /health`
@@ -64,8 +70,8 @@ curl -X POST http://localhost:8000/ask \
   -d '{"question":"How do I convert my UK driving license?"}'
 ```
 
-## Run the Frontend
-Serve the static UI and open it in your browser:
+## Run the Frontend (Optional)
+If you prefer hosting the static UI separately, serve it and open it in your browser:
 ```bash
 cd frontend
 python -m http.server 3000
@@ -75,7 +81,7 @@ Then visit: `http://localhost:3000`
 ## Testing
 The repo includes a simple retrieval test script:
 ```bash
-python backend/test_retrieval.py
+python -m backend.test_retrieval
 ```
 This requires valid API keys and an ingested vector store.
 
